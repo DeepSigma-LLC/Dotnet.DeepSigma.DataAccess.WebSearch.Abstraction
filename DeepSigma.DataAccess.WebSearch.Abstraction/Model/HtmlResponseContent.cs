@@ -1,4 +1,6 @@
 ﻿
+using System.Net;
+
 namespace DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 
 /// <summary>
@@ -13,9 +15,10 @@ namespace DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 /// <param name="Excerpt">An optional excerpt or summary extracted from the HTML, if available. Defaults to null.</param>
 /// <param name="MainText">The main text content extracted from the HTML. This should contain the primary textual content of the page, excluding navigation, ads, and other non-essential elements.</param>
 /// <param name="Language">An optional language code (e.g., "en" for English) indicating the language of the fetched content, if it can be determined. Defaults to null.</param>
+/// <param name="StatusCode">The HTTP status code returned by the server when fetching the page. This indicates whether the fetch operation was successful (e.g., 200 OK) or if there were issues (e.g., 404 Not Found, 500 Internal Server Error).</param>
 /// <param name="Error">Indicates whether an error occurred during the fetch operation. Defaults to false.</param>
 /// <param name="ErrorMessage">An optional error message providing details about any error that occurred during the fetch operation. Defaults to null.</param>
-public record PageResponseContent(
+public record HtmlPageResponseContent(
     string URL,
     string HTML,
     DateTimeOffset FetchedAt,
@@ -24,6 +27,7 @@ public record PageResponseContent(
     string? Excerpt,
     string MainText,
     string? Language,
+    HttpStatusCode StatusCode,
     bool Error = false,
     string[]? ErrorMessage = null
     );

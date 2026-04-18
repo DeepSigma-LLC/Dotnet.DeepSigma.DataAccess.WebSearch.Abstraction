@@ -15,7 +15,7 @@ public interface IContentExtractor
     /// <param name="URL">The URL of the resource to fetch. Must be a valid, absolute URI.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests. This allows the operation to be cancelled if needed, such as when a timeout occurs or when the user cancels the operation.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="PageResponseContent"/> object with the fetched content and metadata.</returns>
-    Task<PageResponseContent> FetchContentAsync(string URL, CancellationToken cancellationToken = default);
+    Task<HtmlPageResponseContent> FetchContentAsync(string URL, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously extracts relevant content from the provided HTML string. 
