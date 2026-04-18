@@ -6,7 +6,7 @@
 /// <param name="Url">The URL retrieved from the search query.</param>
 /// <param name="Title">The title associated with the URL, if available. Defaults to null.</param>
 /// <param name="Snippet">A snippet or summary associated with the URL, if available. Defaults to null.</param>
-/// <param name="Engine">An optional identifier for the search engine used to retrieve the URL. Defaults to null.</param>
+/// <param name="SearchEngine">An optional identifier for the search engine used to retrieve the URL. Defaults to null.</param>
 /// <param name="ParsedUrls">An optional list of URLs parsed from the retrieved URL. Defaults to null.</param>
 /// <param name="Engines">An optional list of search engines that contributed to the retrieval of the URL. Defaults to null.</param>
 /// <param name="EngineRelevanceScore">An optional relevance score for the retrieved URL. Defaults to null.</param>
@@ -23,7 +23,7 @@ public record ResponseUrlRetrival(
     string Url,
     string? Title,
     string? Snippet,
-    string? Engine,
+    string? SearchEngine,
     DateTimeOffset RetrievedAt,
     IReadOnlyList<string>? ParsedUrls = null,
     IReadOnlyList<string>? Engines = null,
