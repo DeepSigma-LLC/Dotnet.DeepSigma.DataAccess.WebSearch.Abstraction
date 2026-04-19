@@ -11,12 +11,10 @@ public class ResponseHtmlContentTests
     public void Constructor_RequiredFieldsOnly_SetsProperties()
     {
         var record = new ResponseHtmlContent(
-            Url: "https://example.com",
             Html: "<html><body>Hello</body></html>",
             FetchedAt: _now,
             StatusCode: HttpStatusCode.OK);
 
-        Assert.Equal("https://example.com", record.Url);
         Assert.Equal("<html><body>Hello</body></html>", record.Html);
         Assert.Equal(_now, record.FetchedAt);
         Assert.Equal(HttpStatusCode.OK, record.StatusCode);
@@ -26,17 +24,14 @@ public class ResponseHtmlContentTests
     public void Constructor_OptionalFields_DefaultToNull()
     {
         var record = new ResponseHtmlContent(
-            Url: "https://example.com",
             Html: "<html/>",
             FetchedAt: _now,
             StatusCode: HttpStatusCode.OK);
 
         Assert.Null(record.ContentType);
         Assert.Null(record.Title);
-        Assert.Null(record.Byline);
         Assert.Null(record.Excerpt);
         Assert.Null(record.Language);
-        Assert.Null(record.SourceUrlRetrival);
         Assert.Null(record.ErrorMessage);
     }
 
@@ -44,7 +39,6 @@ public class ResponseHtmlContentTests
     public void Constructor_ErrorFields_DefaultToFalseAndNull()
     {
         var record = new ResponseHtmlContent(
-            Url: "https://example.com",
             Html: "",
             FetchedAt: _now,
             StatusCode: HttpStatusCode.OK);
@@ -57,7 +51,6 @@ public class ResponseHtmlContentTests
     public void Constructor_WithError_SetsErrorFields()
     {
         var record = new ResponseHtmlContent(
-            Url: "https://example.com",
             Html: "",
             FetchedAt: _now,
             StatusCode: HttpStatusCode.ServiceUnavailable,
@@ -71,43 +64,19 @@ public class ResponseHtmlContentTests
     }
 
     [Fact]
-    public void Constructor_WithSourceUrlRetrival_PreservesMetadata()
-    {
-        var source = new ResponseUrlRetrival(
-            Url: "https://example.com",
-            Title: "Example Page",
-            Snippet: "A snippet",
-            SearchEngine: "Bing",
-            RetrievedAt: _now);
-
-        var record = new ResponseHtmlContent(
-            Url: "https://example.com",
-            Html: "<html/>",
-            FetchedAt: _now,
-            StatusCode: HttpStatusCode.OK,
-            SourceUrlRetrival: source);
-
-        Assert.Equal(source, record.SourceUrlRetrival);
-        Assert.Equal("Example Page", record.SourceUrlRetrival!.Title);
-    }
-
-    [Fact]
     public void Constructor_AllOptionalFields_AreSet()
     {
         var record = new ResponseHtmlContent(
-            Url: "https://example.com",
             Html: "<html/>",
             FetchedAt: _now,
             StatusCode: HttpStatusCode.OK,
             ContentType: "text/html; charset=utf-8",
             Title: "Page Title",
-            Byline: "John Smith",
             Excerpt: "Short excerpt",
             Language: "en");
 
         Assert.Equal("text/html; charset=utf-8", record.ContentType);
         Assert.Equal("Page Title", record.Title);
-        Assert.Equal("John Smith", record.Byline);
         Assert.Equal("Short excerpt", record.Excerpt);
         Assert.Equal("en", record.Language);
     }
@@ -115,8 +84,8 @@ public class ResponseHtmlContentTests
     [Fact]
     public void Equality_SameValues_AreEqual()
     {
-        var a = new ResponseHtmlContent("https://example.com", "<html/>", _now, HttpStatusCode.OK);
-        var b = new ResponseHtmlContent("https://example.com", "<html/>", _now, HttpStatusCode.OK);
+        var a = new ResponseHtmlContent("<html/>", _now, HttpStatusCode.OK);
+        var b = new ResponseHtmlContent("<html/>", _now, HttpStatusCode.OK);
 
         Assert.Equal(a, b);
     }
@@ -124,8 +93,8 @@ public class ResponseHtmlContentTests
     [Fact]
     public void Equality_DifferentStatusCode_AreNotEqual()
     {
-        var a = new ResponseHtmlContent("https://example.com", "<html/>", _now, HttpStatusCode.OK);
-        var b = new ResponseHtmlContent("https://example.com", "<html/>", _now, HttpStatusCode.NotFound);
+        var a = new ResponseHtmlContent("<html/>", _now, HttpStatusCode.OK);
+        var b = new ResponseHtmlContent("<html/>", _now, HttpStatusCode.NotFound);
 
         Assert.NotEqual(a, b);
     }
@@ -133,11 +102,11 @@ public class ResponseHtmlContentTests
     [Fact]
     public void WithOperator_CreatesNewRecordWithChangedField()
     {
-        var original = new ResponseHtmlContent("https://example.com", "<html/>", _now, HttpStatusCode.OK);
+        var original = new ResponseHtmlContent("<html/>", _now, HttpStatusCode.OK);
         var updated = original with { Error = true, ErrorMessage = ["Something went wrong"] };
 
         Assert.False(original.Error);
         Assert.True(updated.Error);
-        Assert.Equal(original.Url, updated.Url);
+        Assert.Equal(original.Html, updated.Html);
     }
 }

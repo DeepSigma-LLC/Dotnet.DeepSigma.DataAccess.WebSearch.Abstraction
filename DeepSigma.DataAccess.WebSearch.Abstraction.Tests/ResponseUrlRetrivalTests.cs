@@ -121,7 +121,7 @@ public class ResponseUrlRetrivalTests
     public void Equality_SameValues_AreEqual()
     {
         var a = new ResponseUrlRetrival("https://example.com", "Title", "Snippet", "Google", _now);
-        var b = new ResponseUrlRetrival("https://example.com", "Title", "Snippet", "Google", _now);
+        var b = a with { };
 
         Assert.Equal(a, b);
     }

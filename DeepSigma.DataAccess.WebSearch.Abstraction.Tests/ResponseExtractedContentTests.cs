@@ -7,10 +7,18 @@ public class ResponseExtractedContentTests
 {
     private static readonly DateTimeOffset _now = DateTimeOffset.UtcNow;
 
+    private static ResponseUrlRetrival CreateUrlRetrival(string url = "https://example.com") =>
+        new(Url: url, Title: null, Snippet: null, SearchEngine: null, RetrievedAt: DateTimeOffset.UtcNow);
+
+    private static ResponseHtmlContent CreateHtmlContent() =>
+        new(Html: "<html/>", FetchedAt: DateTimeOffset.UtcNow, StatusCode: HttpStatusCode.OK);
+
     [Fact]
     public void Constructor_RequiredFieldsOnly_SetsProperties()
     {
         var record = new ResponseExtractedContent(
+            SourceUrlRetrival: CreateUrlRetrival(),
+            SourceHtmlContent: CreateHtmlContent(),
             MainText: "Hello world",
             Title: "My Article");
 
@@ -21,7 +29,11 @@ public class ResponseExtractedContentTests
     [Fact]
     public void Constructor_OptionalFields_DefaultToNull()
     {
-        var record = new ResponseExtractedContent(MainText: "Text", Title: "Title");
+        var record = new ResponseExtractedContent(
+            SourceUrlRetrival: CreateUrlRetrival(),
+            SourceHtmlContent: CreateHtmlContent(),
+            MainText: "Text",
+            Title: "Title");
 
         Assert.Null(record.Language);
         Assert.Null(record.Snippet);
@@ -35,14 +47,17 @@ public class ResponseExtractedContentTests
         Assert.Null(record.Thumbnail);
         Assert.Null(record.ImageUrl);
         Assert.Null(record.Author);
-        Assert.Null(record.SourceHtmlContent);
         Assert.Null(record.ErrorMessage);
     }
 
     [Fact]
     public void Constructor_ErrorFields_DefaultToFalseAndNull()
     {
-        var record = new ResponseExtractedContent(MainText: "Text", Title: "Title");
+        var record = new ResponseExtractedContent(
+            SourceUrlRetrival: CreateUrlRetrival(),
+            SourceHtmlContent: CreateHtmlContent(),
+            MainText: "Text",
+            Title: "Title");
 
         Assert.False(record.Error);
         Assert.Null(record.ErrorMessage);
@@ -52,6 +67,8 @@ public class ResponseExtractedContentTests
     public void Constructor_WithError_SetsErrorFields()
     {
         var record = new ResponseExtractedContent(
+            SourceUrlRetrival: CreateUrlRetrival(),
+            SourceHtmlContent: CreateHtmlContent(),
             MainText: "",
             Title: "",
             Error: true,
@@ -66,19 +83,20 @@ public class ResponseExtractedContentTests
     [Fact]
     public void Constructor_WithSourceHtmlContent_PreservesChain()
     {
+        var urlRetrival = CreateUrlRetrival("https://example.com");
         var html = new ResponseHtmlContent(
-            Url: "https://example.com",
             Html: "<html/>",
             FetchedAt: _now,
             StatusCode: HttpStatusCode.OK);
 
         var record = new ResponseExtractedContent(
+            SourceUrlRetrival: urlRetrival,
+            SourceHtmlContent: html,
             MainText: "Extracted text",
-            Title: "Article",
-            SourceHtmlContent: html);
+            Title: "Article");
 
         Assert.Equal(html, record.SourceHtmlContent);
-        Assert.Equal("https://example.com", record.SourceHtmlContent!.Url);
+        Assert.Equal("https://example.com", record.SourceUrlRetrival.Url);
     }
 
     [Fact]
@@ -88,6 +106,8 @@ public class ResponseExtractedContentTests
         var parsedUrls = new List<string> { "https://ref1.com", "https://ref2.com" };
 
         var record = new ResponseExtractedContent(
+            SourceUrlRetrival: CreateUrlRetrival(),
+            SourceHtmlContent: CreateHtmlContent(),
             MainText: "Full article text",
             Title: "Article Title",
             Language: "en",
@@ -120,8 +140,12 @@ public class ResponseExtractedContentTests
     [Fact]
     public void Equality_SameValues_AreEqual()
     {
-        var a = new ResponseExtractedContent(MainText: "Text", Title: "Title");
-        var b = new ResponseExtractedContent(MainText: "Text", Title: "Title");
+        var a = new ResponseExtractedContent(
+            SourceUrlRetrival: CreateUrlRetrival(),
+            SourceHtmlContent: CreateHtmlContent(),
+            MainText: "Text",
+            Title: "Title");
+        var b = a with { };
 
         Assert.Equal(a, b);
     }
@@ -129,8 +153,10 @@ public class ResponseExtractedContentTests
     [Fact]
     public void Equality_DifferentMainText_AreNotEqual()
     {
-        var a = new ResponseExtractedContent(MainText: "Text A", Title: "Title");
-        var b = new ResponseExtractedContent(MainText: "Text B", Title: "Title");
+        var urlRetrival = CreateUrlRetrival();
+        var html = CreateHtmlContent();
+        var a = new ResponseExtractedContent(SourceUrlRetrival: urlRetrival, SourceHtmlContent: html, MainText: "Text A", Title: "Title");
+        var b = new ResponseExtractedContent(SourceUrlRetrival: urlRetrival, SourceHtmlContent: html, MainText: "Text B", Title: "Title");
 
         Assert.NotEqual(a, b);
     }
@@ -138,7 +164,11 @@ public class ResponseExtractedContentTests
     [Fact]
     public void WithOperator_CreatesNewRecordWithChangedField()
     {
-        var original = new ResponseExtractedContent(MainText: "Original", Title: "Title");
+        var original = new ResponseExtractedContent(
+            SourceUrlRetrival: CreateUrlRetrival(),
+            SourceHtmlContent: CreateHtmlContent(),
+            MainText: "Original",
+            Title: "Title");
         var updated = original with { MainText = "Updated" };
 
         Assert.Equal("Original", original.MainText);

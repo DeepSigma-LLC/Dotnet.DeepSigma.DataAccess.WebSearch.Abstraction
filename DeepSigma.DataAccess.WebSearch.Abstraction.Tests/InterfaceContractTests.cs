@@ -49,17 +49,6 @@ public class InterfaceContractTests
                 StatusCode: HttpStatusCode.OK);
             return Task.FromResult(result);
         }
-
-        public Task<ResponseHtmlContent> FetchContentAsync(
-            string url,
-            CancellationToken cancellationToken = default)
-        {
-            var result = new ResponseHtmlContent(
-                Html: "<html><body>Stub HTML</body></html>",
-                FetchedAt: DateTimeOffset.UtcNow,
-                StatusCode: HttpStatusCode.OK);
-            return Task.FromResult(result);
-        }
     }
 
     private class StubContentExtractor : IContentExtractor
@@ -68,24 +57,17 @@ public class InterfaceContractTests
             ResponseHtmlContent htmlContent,
             CancellationToken cancellationToken = default)
         {
+            var stubUrlRetrival = new ResponseUrlRetrival(
+                Url: "https://stub.example.com",
+                Title: null,
+                Snippet: null,
+                SearchEngine: null,
+                RetrievedAt: DateTimeOffset.UtcNow);
             var result = new ResponseExtractedContent(
-                SourceUrlRetrival: null!, // In a real implementation, this would be populated
+                SourceUrlRetrival: stubUrlRetrival,
+                SourceHtmlContent: htmlContent,
                 MainText: "Extracted text",
-                Title: htmlContent.Title ?? "Untitled",
-                SourceHtmlContent: htmlContent);
-            return Task.FromResult(result);
-        }
-
-        public Task<ResponseExtractedContent> ExtractContentAsync(
-            string html,
-            string? url = null,
-            CancellationToken cancellationToken = default)
-        {
-            var result = new ResponseExtractedContent(
-                SourceUrlRetrival: null!, // In a real implementation, this would be populated
-                SourceHtmlContent: null!, // In a real implementation, this would be populated
-                MainText: "Extracted text",
-                Title: "Untitled");
+                Title: htmlContent.Title ?? "Untitled");
             return Task.FromResult(result);
         }
     }
@@ -128,11 +110,17 @@ public class InterfaceContractTests
 
 
     [Fact]
-    public async Task IHtmlRetriever_FetchContentAsync_FromString_ReturnsHtml()
+    public async Task IHtmlRetriever_FetchContentAsync_FromUrlRetrival_ReturnsHtml()
     {
         IHtmlRetriever retriever = new StubHtmlRetriever();
+        var responseUrl = new ResponseUrlRetrival(
+            Url: "https://example.com",
+            Title: null,
+            Snippet: null,
+            SearchEngine: null,
+            RetrievedAt: DateTimeOffset.UtcNow);
 
-        var result = await retriever.FetchContentAsync("https://example.com");
+        var result = await retriever.FetchContentAsync(responseUrl);
 
         Assert.Equal(HttpStatusCode.OK, result.StatusCode);
         Assert.False(result.Error);
@@ -157,11 +145,15 @@ public class InterfaceContractTests
     }
 
     [Fact]
-    public async Task IContentExtractor_ExtractContentAsync_FromString_ReturnsContent()
+    public async Task IContentExtractor_ExtractContentAsync_FromHtmlContent_ReturnsContent()
     {
         IContentExtractor extractor = new StubContentExtractor();
+        var html = new ResponseHtmlContent(
+            Html: "<html><body>Hello</body></html>",
+            FetchedAt: DateTimeOffset.UtcNow,
+            StatusCode: HttpStatusCode.OK);
 
-        var result = await extractor.ExtractContentAsync("<html><body>Hello</body></html>", "https://example.com");
+        var result = await extractor.ExtractContentAsync(html);
 
         Assert.Equal("Extracted text", result.MainText);
         Assert.False(result.Error);
@@ -178,9 +170,9 @@ public class InterfaceContractTests
         var html = await htmlRetriever.FetchContentAsync(urls.First());
         var content = await contentExtractor.ExtractContentAsync(html);
 
-        // Full chain of metadata is preserved
+        // Full chain of content is preserved
         Assert.NotNull(content.SourceUrlRetrival);
-        Assert.NotNull(content.SourceUrlRetrival.Url);
-        Assert.Equal(urls.First().Url, content.SourceUrlRetrival.Url);
+        Assert.NotNull(content.SourceHtmlContent);
+        Assert.Equal("Extracted text", content.MainText);
     }
 }
