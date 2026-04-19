@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="DeepSigma.DataAccess.WebSearch.Abstraction.csproj" />
+  <Project Path="..\DeepSigma.DataAccess.WebSearch.Abstraction.Tests\DeepSigma.DataAccess.WebSearch.Abstraction.Tests.csproj" />
 </Solution>
