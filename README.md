@@ -36,7 +36,7 @@ A .NET abstraction library that defines contracts (interfaces) and shared models
 ## Features
 
 - **`IUrlRetriever<TSearchOptions>`** — Search for URLs by query with optional, strongly-typed search options.
-- **`IHtmlRetriever`** — Fetch raw HTML content from a URL or a previously retrieved search result.
+- **`IHtmlRetriever`** — Fetch raw HTML content from a previously retrieved search result.
 - **`IContentExtractor`** — Extract structured, meaningful content (title, main text, byline, language, etc.) from HTML.
 - **Rich response models** — Immutable `record` types that carry metadata such as status codes, timestamps, relevance scores, thumbnails, and error information.
 - **Cancellation support** — All async methods accept a `CancellationToken` (defaults to `CancellationToken.None`).
@@ -107,16 +107,14 @@ Retrieves a list of URLs matching a search query.
 
 #### `IHtmlRetriever`
 
-Fetches raw HTML content from a URL.
+Fetches raw HTML content from a previously retrieved search result.
 
 | Method | Signature |
 |--------|-----------|
 | `FetchContentAsync` | `Task<ResponseHtmlContent> FetchContentAsync(ResponseUrlRetrival responseUrl, CancellationToken cancellationToken = default)` |
-| `FetchContentAsync` | `Task<ResponseHtmlContent> FetchContentAsync(string url, CancellationToken cancellationToken = default)` |
 
-Two overloads are provided:
-1. Accept a `ResponseUrlRetrival` to carry forward metadata from the search step.
-2. Accept a raw URL string for standalone use.
+- **`responseUrl`** — A `ResponseUrlRetrival` carrying forward metadata from the search step.
+- **Returns** — A `ResponseHtmlContent` record containing the raw HTML, status code, fetch timestamp, and optional metadata.
 
 ---
 
@@ -127,11 +125,9 @@ Extracts structured content from HTML.
 | Method | Signature |
 |--------|-----------|
 | `ExtractContentAsync` | `Task<ResponseExtractedContent> ExtractContentAsync(ResponseHtmlContent htmlContent, CancellationToken cancellationToken = default)` |
-| `ExtractContentAsync` | `Task<ResponseExtractedContent> ExtractContentAsync(string html, string? url = null, CancellationToken cancellationToken = default)` |
 
-Two overloads are provided:
-1. Accept a `ResponseHtmlContent` to preserve the full fetch context.
-2. Accept a raw HTML string (with an optional URL for context).
+- **`htmlContent`** — A `ResponseHtmlContent` record preserving the full fetch context.
+- **Returns** — A `ResponseExtractedContent` record containing the extracted text, title, metadata, and references back to the source HTML and URL retrieval.
 
 ---
 
@@ -161,6 +157,7 @@ An immutable `record` representing a single search result.
 | `PublishedDate` | `DateTimeOffset?` | Content publication date. |
 | `Error` | `bool` | Whether an error occurred. Defaults to `false`. |
 | `ErrorMessage` | `string[]?` | Error details. Defaults to `null`. |
+| `AdditionalData` | `Dictionary<string, object>` | Extension data for custom properties not covered by the typed fields. |
 
 ---
 
@@ -170,16 +167,13 @@ An immutable `record` representing fetched HTML page content.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `Url` | `string` | The page URL. |
 | `Html` | `string` | Raw HTML markup. |
 | `FetchedAt` | `DateTimeOffset` | Fetch timestamp (UTC). |
 | `StatusCode` | `HttpStatusCode` | HTTP response status code. |
 | `ContentType` | `string?` | MIME type (e.g., `text/html`). |
 | `Title` | `string?` | Page title. |
-| `Byline` | `string?` | Author / byline. |
 | `Excerpt` | `string?` | Page excerpt. |
 | `Language` | `string?` | Language code (e.g., `en`). |
-| `SourceUrlRetrival` | `ResponseUrlRetrival?` | Original search result metadata. |
 | `Error` | `bool` | Whether an error occurred. Defaults to `false`. |
 | `ErrorMessage` | `string[]?` | Error details. Defaults to `null`. |
 
@@ -191,8 +185,10 @@ An immutable `record` representing content extracted from HTML.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `MainText` | `string` | The primary extracted text. |
-| `Title` | `string` | Content title. |
+| `SourceUrlRetrival` | `ResponseUrlRetrival` | **(Required)** The source URL retrieval information associated with the extracted content. |
+| `SourceHtmlContent` | `ResponseHtmlContent` | **(Required)** The source HTML content from which the content was extracted. |
+| `MainText` | `string` | **(Required)** The primary extracted text. |
+| `Title` | `string` | **(Required)** Content title. |
 | `Language` | `string?` | Language code. |
 | `Snippet` | `string?` | Short snippet. |
 | `Byline` | `string?` | Author / byline. |
@@ -205,9 +201,9 @@ An immutable `record` representing content extracted from HTML.
 | `Thumbnail` | `string?` | Thumbnail image URL. |
 | `ImageUrl` | `string?` | Associated image URL. |
 | `Author` | `string?` | Author name. |
-| `SourceHtmlContent` | `ResponseHtmlContent?` | Original HTML content. |
 | `Error` | `bool` | Whether an error occurred. Defaults to `false`. |
 | `ErrorMessage` | `string[]?` | Error details. Defaults to `null`. |
+| `AdditionalData` | `Dictionary<string, object>` | Extension data for custom properties not covered by the typed fields. |
 
 ---
 
@@ -284,21 +280,12 @@ public class HttpClientHtmlRetriever : IHtmlRetriever
         ResponseUrlRetrival responseUrl,
         CancellationToken cancellationToken = default)
     {
-        var result = await FetchContentAsync(responseUrl.Url, cancellationToken);
-        return result with { SourceUrlRetrival = responseUrl };
-    }
-
-    public async Task<ResponseHtmlContent> FetchContentAsync(
-        string url,
-        CancellationToken cancellationToken = default)
-    {
         try
         {
-            var response = await _httpClient.GetAsync(url, cancellationToken);
+            var response = await _httpClient.GetAsync(responseUrl.Url, cancellationToken);
             var html = await response.Content.ReadAsStringAsync(cancellationToken);
 
             return new ResponseHtmlContent(
-                Url: url,
                 Html: html,
                 FetchedAt: DateTimeOffset.UtcNow,
                 StatusCode: response.StatusCode,
@@ -308,7 +295,6 @@ public class HttpClientHtmlRetriever : IHtmlRetriever
         catch (Exception ex)
         {
             return new ResponseHtmlContent(
-                Url: url,
                 Html: string.Empty,
                 FetchedAt: DateTimeOffset.UtcNow,
                 StatusCode: HttpStatusCode.InternalServerError,
@@ -330,24 +316,17 @@ using DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 
 public class SmartReaderContentExtractor : IContentExtractor
 {
-    public async Task<ResponseExtractedContent> ExtractContentAsync(
+    public Task<ResponseExtractedContent> ExtractContentAsync(
         ResponseHtmlContent htmlContent,
         CancellationToken cancellationToken = default)
     {
-        var result = await ExtractContentAsync(htmlContent.Html, htmlContent.Url, cancellationToken);
-        return result with { SourceHtmlContent = htmlContent };
-    }
-
-    public Task<ResponseExtractedContent> ExtractContentAsync(
-        string html,
-        string? url = null,
-        CancellationToken cancellationToken = default)
-    {
         // Use SmartReader or any HTML parsing library
-        var reader = new SmartReader.Reader(url ?? "https://example.com", html);
+        var reader = new SmartReader.Reader("https://example.com", htmlContent.Html);
         var article = reader.GetArticle();
 
         var content = new ResponseExtractedContent(
+            SourceUrlRetrival: null!, // Populated by the caller or pipeline
+            SourceHtmlContent: htmlContent,
             MainText: article.TextContent ?? string.Empty,
             Title: article.Title ?? string.Empty,
             Byline: article.Byline,
@@ -398,6 +377,8 @@ public class WebSearchPipeline
             if (html.Error)
             {
                 results.Add(new ResponseExtractedContent(
+                    SourceUrlRetrival: url,
+                    SourceHtmlContent: html,
                     MainText: string.Empty,
                     Title: url.Title ?? string.Empty,
                     Error: true,
