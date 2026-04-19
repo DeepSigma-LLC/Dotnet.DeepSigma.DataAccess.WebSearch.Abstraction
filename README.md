@@ -28,7 +28,6 @@ A .NET abstraction library that defines contracts (interfaces) and shared models
   - [4. End-to-End Pipeline](#4-end-to-end-pipeline)
   - [5. Dependency Injection Registration](#5-dependency-injection-registration)
 - [Requirements](#requirements)
-- [Contributing](#contributing)
 - [License](#license)
 
 ---
