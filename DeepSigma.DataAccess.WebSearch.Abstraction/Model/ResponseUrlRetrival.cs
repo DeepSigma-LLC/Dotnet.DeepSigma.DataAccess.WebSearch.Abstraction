@@ -1,4 +1,4 @@
-﻿namespace DeepSigma.DataAccess.WebSearch.Abstraction.Model;
+namespace DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 
 /// <summary>
 /// Represents the response from a URL retrieval operation, containing an array of URLs and the timestamp of when the URLs were retrieved.
@@ -19,6 +19,8 @@
 /// <param name="IframeSrc">An optional source URL for an iframe associated with the retrieved URL. Defaults to null.</param>
 /// <param name="PublishedDate">An optional timestamp indicating when the content at the retrieved URL was published. Defaults to null.</param>
 /// <param name="RetrievedAt">The timestamp indicating when the URL was retrieved. Defaults to the current UTC time.</param>
+/// <param name="Error">Indicates whether an error occurred during the URL retrieval operation. Defaults to false.</param>
+/// <param name="ErrorMessage">An optional array of error messages providing details about any errors that occurred during retrieval. Defaults to null.</param>
 public record ResponseUrlRetrival(
     string Url,
     string? Title,
@@ -35,5 +37,7 @@ public record ResponseUrlRetrival(
     string? ImageUrl = null,
     string? Author = null,
     string? IframeSrc = null,
-    DateTimeOffset? PublishedDate = null
+    DateTimeOffset? PublishedDate = null,
+    bool Error = false,
+    string[]? ErrorMessage = null
     );

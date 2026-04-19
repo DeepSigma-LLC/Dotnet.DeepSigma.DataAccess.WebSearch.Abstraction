@@ -14,16 +14,16 @@ A .NET abstraction library that defines contracts (interfaces) and shared models
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
   - [Interfaces](#interfaces)
-    - [IUrlRetriver\<TSearchOptions\>](#iurlretrievertsearchoptions)
-    - [IHtmlRetriver](#ihtmlretriver)
+    - [IUrlRetriever\<TSearchOptions\>](#iurlretrievertsearchoptions)
+    - [IHtmlRetriever](#ihtmlretriever)
     - [IContentExtractor](#icontentextractor)
   - [Models](#models)
     - [ResponseUrlRetrival](#responseurlretrival)
     - [ResponseHtmlContent](#responsehtmlcontent)
     - [ResponseExtractedContent](#responseextractedcontent)
 - [Usage Examples](#usage-examples)
-  - [1. Implementing IUrlRetriver](#1-implementing-iurlretriver)
-  - [2. Implementing IHtmlRetriver](#2-implementing-ihtmlretriver)
+  - [1. Implementing IUrlRetriever](#1-implementing-iurlretriever)
+  - [2. Implementing IHtmlRetriever](#2-implementing-ihtmlretriever)
   - [3. Implementing IContentExtractor](#3-implementing-icontentextractor)
   - [4. End-to-End Pipeline](#4-end-to-end-pipeline)
   - [5. Dependency Injection Registration](#5-dependency-injection-registration)
@@ -35,11 +35,12 @@ A .NET abstraction library that defines contracts (interfaces) and shared models
 
 ## Features
 
-- **`IUrlRetriver<TSearchOptions>`** — Search for URLs by query with optional, strongly-typed search options.
-- **`IHtmlRetriver`** — Fetch raw HTML content from a URL or a previously retrieved search result.
+- **`IUrlRetriever<TSearchOptions>`** — Search for URLs by query with optional, strongly-typed search options.
+- **`IHtmlRetriever`** — Fetch raw HTML content from a URL or a previously retrieved search result.
 - **`IContentExtractor`** — Extract structured, meaningful content (title, main text, byline, language, etc.) from HTML.
 - **Rich response models** — Immutable `record` types that carry metadata such as status codes, timestamps, relevance scores, thumbnails, and error information.
-- **Cancellation support** — All async methods accept an optional `CancellationToken`.
+- **Cancellation support** — All async methods accept a `CancellationToken` (defaults to `CancellationToken.None`).
+- **Consistent error handling** — Every response model exposes `Error` and `ErrorMessage` fields for uniform error propagation across the pipeline.
 - **Provider-agnostic** — Implement the interfaces with any search engine SDK, HTTP client, or HTML parser.
 
 ---
@@ -67,18 +68,18 @@ using DeepSigma.DataAccess.WebSearch.Abstraction;
 using DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 
 // Assume implementations are injected via DI
-IUrlRetriver<MySearchOptions> urlRetriver = ...;
-IHtmlRetriver htmlRetriver = ...;
+IUrlRetriever<MySearchOptions> urlRetriever = ...;
+IHtmlRetriever htmlRetriever = ...;
 IContentExtractor contentExtractor = ...;
 
 // 1. Search for URLs
-List<ResponseUrlRetrival> urls = await urlRetriver.SearchAsync("latest .NET 10 features");
+List<ResponseUrlRetrival> urls = await urlRetriever.SearchAsync("latest .NET 10 features");
 
 // 2. Fetch HTML from the first result
-ResponseHtmlContent html = await htmlRetriver.FetchContentAsync(urls.First());
+ResponseHtmlContent html = await htmlRetriever.FetchContentAsync(urls.First());
 
 // 3. Extract readable content
-ResponseExtractedContent content = await contentExtractor.ExtractedContentAsync(html);
+ResponseExtractedContent content = await contentExtractor.ExtractContentAsync(html);
 
 Console.WriteLine($"Title: {content.Title}");
 Console.WriteLine($"Text:  {content.MainText}");
@@ -90,13 +91,13 @@ Console.WriteLine($"Text:  {content.MainText}");
 
 ### Interfaces
 
-#### `IUrlRetriver<TSearchOptions>`
+#### `IUrlRetriever<TSearchOptions>`
 
 Retrieves a list of URLs matching a search query.
 
 | Method | Signature |
 |--------|-----------|
-| `SearchAsync` | `Task<List<ResponseUrlRetrival>> SearchAsync(string query, TSearchOptions? searchOption = null, CancellationToken? cancellationToken = default)` |
+| `SearchAsync` | `Task<List<ResponseUrlRetrival>> SearchAsync(string query, TSearchOptions? searchOption = null, CancellationToken cancellationToken = default)` |
 
 - **`TSearchOptions`** — A class that represents provider-specific search options (e.g., region, safe-search level, result count).
 - **`query`** — The search terms.
@@ -104,14 +105,14 @@ Retrieves a list of URLs matching a search query.
 
 ---
 
-#### `IHtmlRetriver`
+#### `IHtmlRetriever`
 
 Fetches raw HTML content from a URL.
 
 | Method | Signature |
 |--------|-----------|
-| `FetchContentAsync` | `Task<ResponseHtmlContent> FetchContentAsync(ResponseUrlRetrival responseUrl, CancellationToken? cancellationToken = default)` |
-| `FetchContentAsync` | `Task<ResponseHtmlContent> FetchContentAsync(string URL, CancellationToken? cancellationToken = default)` |
+| `FetchContentAsync` | `Task<ResponseHtmlContent> FetchContentAsync(ResponseUrlRetrival responseUrl, CancellationToken cancellationToken = default)` |
+| `FetchContentAsync` | `Task<ResponseHtmlContent> FetchContentAsync(string url, CancellationToken cancellationToken = default)` |
 
 Two overloads are provided:
 1. Accept a `ResponseUrlRetrival` to carry forward metadata from the search step.
@@ -125,8 +126,8 @@ Extracts structured content from HTML.
 
 | Method | Signature |
 |--------|-----------|
-| `ExtractedContentAsync` | `Task<ResponseExtractedContent> ExtractedContentAsync(ResponseHtmlContent htmlContent, CancellationToken? cancellationToken = default)` |
-| `ExtractedContentAsync` | `Task<ResponseExtractedContent> ExtractedContentAsync(string html, string? url = null, CancellationToken? cancellationToken = default)` |
+| `ExtractContentAsync` | `Task<ResponseExtractedContent> ExtractContentAsync(ResponseHtmlContent htmlContent, CancellationToken cancellationToken = default)` |
+| `ExtractContentAsync` | `Task<ResponseExtractedContent> ExtractContentAsync(string html, string? url = null, CancellationToken cancellationToken = default)` |
 
 Two overloads are provided:
 1. Accept a `ResponseHtmlContent` to preserve the full fetch context.
@@ -158,6 +159,8 @@ An immutable `record` representing a single search result.
 | `Author` | `string?` | Content author. |
 | `IframeSrc` | `string?` | Iframe source URL. |
 | `PublishedDate` | `DateTimeOffset?` | Content publication date. |
+| `Error` | `bool` | Whether an error occurred. Defaults to `false`. |
+| `ErrorMessage` | `string[]?` | Error details. Defaults to `null`. |
 
 ---
 
@@ -167,8 +170,8 @@ An immutable `record` representing fetched HTML page content.
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `URL` | `string` | The page URL. |
-| `HTML` | `string` | Raw HTML markup. |
+| `Url` | `string` | The page URL. |
+| `Html` | `string` | Raw HTML markup. |
 | `FetchedAt` | `DateTimeOffset` | Fetch timestamp (UTC). |
 | `StatusCode` | `HttpStatusCode` | HTTP response status code. |
 | `ContentType` | `string?` | MIME type (e.g., `text/html`). |
@@ -177,8 +180,8 @@ An immutable `record` representing fetched HTML page content.
 | `Excerpt` | `string?` | Page excerpt. |
 | `Language` | `string?` | Language code (e.g., `en`). |
 | `SourceUrlRetrival` | `ResponseUrlRetrival?` | Original search result metadata. |
-| `Error` | `bool` | Whether an error occurred. |
-| `ErrorMessage` | `string[]?` | Error details. |
+| `Error` | `bool` | Whether an error occurred. Defaults to `false`. |
+| `ErrorMessage` | `string[]?` | Error details. Defaults to `null`. |
 
 ---
 
@@ -203,14 +206,14 @@ An immutable `record` representing content extracted from HTML.
 | `ImageUrl` | `string?` | Associated image URL. |
 | `Author` | `string?` | Author name. |
 | `SourceHtmlContent` | `ResponseHtmlContent?` | Original HTML content. |
-| `Error` | `bool` | Whether an error occurred. |
-| `ErrorMessage` | `string[]?` | Error details. |
+| `Error` | `bool` | Whether an error occurred. Defaults to `false`. |
+| `ErrorMessage` | `string[]?` | Error details. Defaults to `null`. |
 
 ---
 
 ## Usage Examples
 
-### 1. Implementing `IUrlRetriver`
+### 1. Implementing `IUrlRetriever`
 
 ```csharp
 using DeepSigma.DataAccess.WebSearch.Abstraction;
@@ -223,11 +226,11 @@ public class GoogleSearchOptions
     public bool SafeSearch { get; set; } = true;
 }
 
-public class GoogleUrlRetriver : IUrlRetriver<GoogleSearchOptions>
+public class GoogleUrlRetriever : IUrlRetriever<GoogleSearchOptions>
 {
     private readonly HttpClient _httpClient;
 
-    public GoogleUrlRetriver(HttpClient httpClient)
+    public GoogleUrlRetriever(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
@@ -235,13 +238,12 @@ public class GoogleUrlRetriver : IUrlRetriver<GoogleSearchOptions>
     public async Task<List<ResponseUrlRetrival>> SearchAsync(
         string query,
         GoogleSearchOptions? searchOption = null,
-        CancellationToken? cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
-        var ct = cancellationToken ?? CancellationToken.None;
         var maxResults = searchOption?.MaxResults ?? 10;
 
         // Call your search API here...
-        var apiResults = await CallSearchApiAsync(query, maxResults, ct);
+        var apiResults = await CallSearchApiAsync(query, maxResults, cancellationToken);
 
         return apiResults.Select(r => new ResponseUrlRetrival(
             Url: r.Link,
@@ -262,45 +264,42 @@ public class GoogleUrlRetriver : IUrlRetriver<GoogleSearchOptions>
 
 ---
 
-### 2. Implementing `IHtmlRetriver`
+### 2. Implementing `IHtmlRetriever`
 
 ```csharp
 using System.Net;
 using DeepSigma.DataAccess.WebSearch.Abstraction;
 using DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 
-public class HttpClientHtmlRetriver : IHtmlRetriver
+public class HttpClientHtmlRetriever : IHtmlRetriever
 {
     private readonly HttpClient _httpClient;
 
-    public HttpClientHtmlRetriver(HttpClient httpClient)
+    public HttpClientHtmlRetriever(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
 
     public async Task<ResponseHtmlContent> FetchContentAsync(
         ResponseUrlRetrival responseUrl,
-        CancellationToken? cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         var result = await FetchContentAsync(responseUrl.Url, cancellationToken);
-        // Carry forward the source metadata
         return result with { SourceUrlRetrival = responseUrl };
     }
 
     public async Task<ResponseHtmlContent> FetchContentAsync(
-        string URL,
-        CancellationToken? cancellationToken = default)
+        string url,
+        CancellationToken cancellationToken = default)
     {
-        var ct = cancellationToken ?? CancellationToken.None;
-
         try
         {
-            var response = await _httpClient.GetAsync(URL, ct);
-            var html = await response.Content.ReadAsStringAsync(ct);
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            var html = await response.Content.ReadAsStringAsync(cancellationToken);
 
             return new ResponseHtmlContent(
-                URL: URL,
-                HTML: html,
+                Url: url,
+                Html: html,
                 FetchedAt: DateTimeOffset.UtcNow,
                 StatusCode: response.StatusCode,
                 ContentType: response.Content.Headers.ContentType?.MediaType
@@ -309,8 +308,8 @@ public class HttpClientHtmlRetriver : IHtmlRetriver
         catch (Exception ex)
         {
             return new ResponseHtmlContent(
-                URL: URL,
-                HTML: string.Empty,
+                Url: url,
+                Html: string.Empty,
                 FetchedAt: DateTimeOffset.UtcNow,
                 StatusCode: HttpStatusCode.InternalServerError,
                 Error: true,
@@ -331,18 +330,18 @@ using DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 
 public class SmartReaderContentExtractor : IContentExtractor
 {
-    public async Task<ResponseExtractedContent> ExtractedContentAsync(
+    public async Task<ResponseExtractedContent> ExtractContentAsync(
         ResponseHtmlContent htmlContent,
-        CancellationToken? cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
-        var result = await ExtractedContentAsync(htmlContent.HTML, htmlContent.URL, cancellationToken);
+        var result = await ExtractContentAsync(htmlContent.Html, htmlContent.Url, cancellationToken);
         return result with { SourceHtmlContent = htmlContent };
     }
 
-    public Task<ResponseExtractedContent> ExtractedContentAsync(
+    public Task<ResponseExtractedContent> ExtractContentAsync(
         string html,
         string? url = null,
-        CancellationToken? cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         // Use SmartReader or any HTML parsing library
         var reader = new SmartReader.Reader(url ?? "https://example.com", html);
@@ -353,7 +352,6 @@ public class SmartReaderContentExtractor : IContentExtractor
             Title: article.Title ?? string.Empty,
             Byline: article.Byline,
             Language: article.Language,
-            Excerpt: article.Excerpt,
             PublishedAt: article.PublicationDate
         );
 
@@ -369,17 +367,17 @@ public class SmartReaderContentExtractor : IContentExtractor
 ```csharp
 public class WebSearchPipeline
 {
-    private readonly IUrlRetriver<GoogleSearchOptions> _urlRetriver;
-    private readonly IHtmlRetriver _htmlRetriver;
+    private readonly IUrlRetriever<GoogleSearchOptions> _urlRetriever;
+    private readonly IHtmlRetriever _htmlRetriever;
     private readonly IContentExtractor _contentExtractor;
 
     public WebSearchPipeline(
-        IUrlRetriver<GoogleSearchOptions> urlRetriver,
-        IHtmlRetriver htmlRetriver,
+        IUrlRetriever<GoogleSearchOptions> urlRetriever,
+        IHtmlRetriever htmlRetriever,
         IContentExtractor contentExtractor)
     {
-        _urlRetriver = urlRetriver;
-        _htmlRetriver = htmlRetriver;
+        _urlRetriever = urlRetriever;
+        _htmlRetriever = htmlRetriever;
         _contentExtractor = contentExtractor;
     }
 
@@ -388,14 +386,14 @@ public class WebSearchPipeline
         CancellationToken cancellationToken = default)
     {
         // Step 1: Search
-        var urls = await _urlRetriver.SearchAsync(query, cancellationToken: cancellationToken);
+        var urls = await _urlRetriever.SearchAsync(query, cancellationToken: cancellationToken);
 
         var results = new List<ResponseExtractedContent>();
 
         foreach (var url in urls)
         {
             // Step 2: Fetch HTML
-            var html = await _htmlRetriver.FetchContentAsync(url, cancellationToken);
+            var html = await _htmlRetriever.FetchContentAsync(url, cancellationToken);
 
             if (html.Error)
             {
@@ -409,7 +407,7 @@ public class WebSearchPipeline
             }
 
             // Step 3: Extract content
-            var content = await _contentExtractor.ExtractedContentAsync(html, cancellationToken);
+            var content = await _contentExtractor.ExtractContentAsync(html, cancellationToken);
             results.Add(content);
         }
 
@@ -428,9 +426,9 @@ using Microsoft.Extensions.DependencyInjection;
 var services = new ServiceCollection();
 
 // Register your implementations
-services.AddHttpClient<HttpClientHtmlRetriver>();
-services.AddSingleton<IUrlRetriver<GoogleSearchOptions>, GoogleUrlRetriver>();
-services.AddSingleton<IHtmlRetriver, HttpClientHtmlRetriver>();
+services.AddHttpClient<HttpClientHtmlRetriever>();
+services.AddSingleton<IUrlRetriever<GoogleSearchOptions>, GoogleUrlRetriever>();
+services.AddSingleton<IHtmlRetriever, HttpClientHtmlRetriever>();
 services.AddSingleton<IContentExtractor, SmartReaderContentExtractor>();
 
 // Register the pipeline

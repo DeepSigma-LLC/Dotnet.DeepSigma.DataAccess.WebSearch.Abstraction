@@ -1,4 +1,4 @@
-﻿
+
 using System.Net;
 
 namespace DeepSigma.DataAccess.WebSearch.Abstraction.Model;
@@ -7,10 +7,9 @@ namespace DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 /// Represents the content of a web page as returned by a fetch operation, including its URL, HTML markup, and the
 /// timestamp when it was retrieved.
 /// </summary>
-/// <param name="URL">The absolute URL of the web page from which the content was fetched. Cannot be null or empty.</param>
-/// <param name="HTML">The raw HTML markup of the fetched web page. May be empty if the page has no content.</param>
+/// <param name="Url">The absolute URL of the web page from which the content was fetched. Cannot be null or empty.</param>
+/// <param name="Html">The raw HTML markup of the fetched web page. May be empty if the page has no content.</param>
 /// <param name="FetchedAt">The date and time, in UTC, when the page content was retrieved.</param>
-/// <param name="PublishedAt">The date and time, in UTC, when the content of the page was published, if this information can be extracted from the HTML. Defaults to the current UTC time if not available.</param>
 /// <param name="Title">An optional title of the web page, if it can be extracted from the HTML. Defaults to null.</param>
 /// <param name="Byline">An optional byline or author information extracted from the HTML, if available. Defaults to null.</param>
 /// <param name="Excerpt">An optional excerpt or summary extracted from the HTML, if available. Defaults to null.</param>
@@ -21,8 +20,8 @@ namespace DeepSigma.DataAccess.WebSearch.Abstraction.Model;
 /// <param name="ContentType">An optional string indicating the MIME type of the fetched content (e.g., "text/html"). Defaults to null.</param>
 /// <param name="ErrorMessage">An optional error message providing details about any error that occurred during the fetch operation. Defaults to null.</param>
 public record ResponseHtmlContent(
-    string URL,
-    string HTML,
+    string Url,
+    string Html,
     DateTimeOffset FetchedAt,
     HttpStatusCode StatusCode,
     string? ContentType = null,
