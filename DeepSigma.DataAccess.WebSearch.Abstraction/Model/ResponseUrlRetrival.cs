@@ -27,6 +27,7 @@ public record ResponseUrlRetrival(
     string? Snippet,
     string? SearchEngine,
     DateTimeOffset RetrievedAt,
+    DateTimeOffset? PublishedDate = null,
     IReadOnlyList<string>? ParsedUrls = null,
     IReadOnlyList<string>? Engines = null,
     double? EngineRelevanceScore = null,
@@ -37,7 +38,12 @@ public record ResponseUrlRetrival(
     string? ImageUrl = null,
     string? Author = null,
     string? IframeSrc = null,
-    DateTimeOffset? PublishedDate = null,
     bool Error = false,
     string[]? ErrorMessage = null
-    );
+    )
+{
+    /// <summary>
+    /// A dictionary to hold any additional data that may be relevant to the URL retrieval operation but is not explicitly defined in the record properties. This allows for flexibility in storing extra information without modifying the record structure. The keys are strings representing the name of the additional data, and the values are objects that can hold any type of data. This can be useful for storing metadata, debugging information, or any other relevant details that may be needed for processing or analysis of the retrieved URLs.
+    /// </summary>
+    public Dictionary<string, object> AdditionalData = [];
+};
