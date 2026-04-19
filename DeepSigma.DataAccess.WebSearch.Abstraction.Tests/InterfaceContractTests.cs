@@ -55,16 +55,11 @@ public class InterfaceContractTests
     {
         public Task<ResponseExtractedContent> ExtractContentAsync(
             ResponseHtmlContent htmlContent,
+            ResponseUrlRetrival urlRetrival,
             CancellationToken cancellationToken = default)
         {
-            var stubUrlRetrival = new ResponseUrlRetrival(
-                Url: "https://stub.example.com",
-                Title: null,
-                Snippet: null,
-                SearchEngine: null,
-                RetrievedAt: DateTimeOffset.UtcNow);
             var result = new ResponseExtractedContent(
-                SourceUrlRetrival: stubUrlRetrival,
+                SourceUrlRetrival: urlRetrival,
                 SourceHtmlContent: htmlContent,
                 MainText: "Extracted text",
                 Title: htmlContent.Title ?? "Untitled");
@@ -131,13 +126,19 @@ public class InterfaceContractTests
     public async Task IContentExtractor_ExtractContentAsync_FromHtmlContent_PreservesSource()
     {
         IContentExtractor extractor = new StubContentExtractor();
+        var urlRetrival = new ResponseUrlRetrival(
+            Url: "https://example.com",
+            Title: "Article Title",
+            Snippet: null,
+            SearchEngine: null,
+            RetrievedAt: DateTimeOffset.UtcNow);
         var html = new ResponseHtmlContent(
             Html: "<html><body>Article body</body></html>",
             FetchedAt: DateTimeOffset.UtcNow,
             StatusCode: HttpStatusCode.OK,
             Title: "Article Title");
 
-        var result = await extractor.ExtractContentAsync(html);
+        var result = await extractor.ExtractContentAsync(html, urlRetrival);
 
         Assert.Equal("Extracted text", result.MainText);
         Assert.Equal("Article Title", result.Title);
@@ -148,12 +149,18 @@ public class InterfaceContractTests
     public async Task IContentExtractor_ExtractContentAsync_FromHtmlContent_ReturnsContent()
     {
         IContentExtractor extractor = new StubContentExtractor();
+        var urlRetrival = new ResponseUrlRetrival(
+            Url: "https://example.com",
+            Title: null,
+            Snippet: null,
+            SearchEngine: null,
+            RetrievedAt: DateTimeOffset.UtcNow);
         var html = new ResponseHtmlContent(
             Html: "<html><body>Hello</body></html>",
             FetchedAt: DateTimeOffset.UtcNow,
             StatusCode: HttpStatusCode.OK);
 
-        var result = await extractor.ExtractContentAsync(html);
+        var result = await extractor.ExtractContentAsync(html, urlRetrival);
 
         Assert.Equal("Extracted text", result.MainText);
         Assert.False(result.Error);
@@ -168,7 +175,7 @@ public class InterfaceContractTests
 
         var urls = await urlRetriever.SearchAsync("test");
         var html = await htmlRetriever.FetchContentAsync(urls.First());
-        var content = await contentExtractor.ExtractContentAsync(html);
+        var content = await contentExtractor.ExtractContentAsync(html, urls.First());
 
         // Full chain of content is preserved
         Assert.NotNull(content.SourceUrlRetrival);

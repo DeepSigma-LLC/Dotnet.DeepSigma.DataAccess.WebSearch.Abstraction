@@ -13,8 +13,9 @@ public interface IContentExtractor
     /// Asynchronously extracts relevant content from the provided HTML content.
     /// </summary>
     /// <param name="htmlContent">The HTML content to extract information from.</param>
+    /// <param name="urlRetrival">The URL retrieval information associated with the HTML content.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="ResponseExtractedContent"/> object with the extracted content and metadata.</returns>
-    Task<ResponseExtractedContent> ExtractContentAsync(ResponseHtmlContent htmlContent, CancellationToken cancellationToken = default);
+    Task<ResponseExtractedContent> ExtractContentAsync(ResponseHtmlContent htmlContent, ResponseUrlRetrival urlRetrival, CancellationToken cancellationToken = default);
 
 }
